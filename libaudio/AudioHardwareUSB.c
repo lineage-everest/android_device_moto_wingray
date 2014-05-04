@@ -103,11 +103,11 @@ static int start_output_stream(struct stream_out *out)
     struct audio_device *adev = out->dev;
     int i;
 
-    ALOGD("%s ->", __func__);
+    ALOGD("%s", __func__);
     if ((adev->card < 0) || (adev->device < 0))
         return -EINVAL;
 
-    //ALOGD("start_output_stream()");
+    ALOGD("start_output_stream()");
 #ifdef USE_MMAP
     out->pcm = pcm_open(adev->card, adev->device, PCM_OUT | PCM_MMAP | PCM_NOIRQ , &pcm_config);
 #else
@@ -131,7 +131,8 @@ static int start_output_stream(struct stream_out *out)
         ALOGD("mixer_ctl: %s [%s]", mixer_ctl_get_name(mix_ctl), mixer_ctl_get_type_string(mix_ctl));
     }
 #endif
-    ALOGD("%s <-", __func__);
+
+    
 
     return 0;
 }
@@ -140,7 +141,7 @@ static int start_output_stream(struct stream_out *out)
 
 static uint32_t out_get_sample_rate(const struct audio_stream *stream)
 {
-    //ALOGD("%s", __func__);
+    ALOGD("%s", __func__);
     return pcm_config.rate;
 }
 
@@ -179,7 +180,7 @@ static int out_standby(struct audio_stream *stream)
 {
     struct stream_out *out = (struct stream_out *)stream;
 
-    ALOGD("%s ->", __func__);
+    ALOGD("%s", __func__);
     pthread_mutex_lock(&out->dev->lock);
     pthread_mutex_lock(&out->lock);
 
@@ -193,7 +194,6 @@ static int out_standby(struct audio_stream *stream)
 
     pthread_mutex_unlock(&out->lock);
     pthread_mutex_unlock(&out->dev->lock);
-    ALOGD("%s <-", __func__);
 
     return 0;
 }
@@ -214,7 +214,7 @@ static int out_set_parameters(struct audio_stream *stream, const char *kvpairs)
     int routing = 0;
     int closing = 0;
 
-    ALOGD("%s ->", __func__);
+    ALOGD("%s", __func__);
     parms = str_parms_create_str(kvpairs);
     pthread_mutex_lock(&adev->lock);
 
@@ -245,7 +245,6 @@ static int out_set_parameters(struct audio_stream *stream, const char *kvpairs)
     ALOGD("out_set_parameters card [%d] device[%d] out_override[%d]", adev->card, adev->device, out_override);
     pthread_mutex_unlock(&adev->lock);
     str_parms_destroy(parms);
-    ALOGD("%s <-", __func__);
 
     return 0;
 }
@@ -258,7 +257,7 @@ static char * out_get_parameters(const struct audio_stream *stream, const char *
 
 static uint32_t out_get_latency(const struct audio_stream_out *stream)
 {
-    //ALOGD("%s", __func__);
+    ALOGD("%s", __func__);
     return (pcm_config.period_size * pcm_config.period_count * 1000) /
             out_get_sample_rate(&stream->common);
 }
@@ -281,7 +280,7 @@ static ssize_t out_write(struct audio_stream_out *stream, const void* buffer,
     int ret;
     struct stream_out *out = (struct stream_out *)stream;
 
-    //ALOGD("%s ->", __func__);
+    //ALOGD("%s", __func__);
     //ALOGD("out_write() USB HAL writing %d", bytes);
     pthread_mutex_lock(&out->dev->lock);
     pthread_mutex_lock(&out->lock);
@@ -296,18 +295,16 @@ static ssize_t out_write(struct audio_stream_out *stream, const void* buffer,
 #ifdef USE_MMAP
     ret = pcm_mmap_write(out->pcm, (void *)buffer, bytes);
 #else
-    ret = pcm_write(out->pcm, (void *)buffer, bytes);
+    pcm_write(out->pcm, (void *)buffer, bytes);
 #endif
 
     pthread_mutex_unlock(&out->lock);
     pthread_mutex_unlock(&out->dev->lock);
-    
-    //ALOGD("%s <- %d", __func__, ret);
 
 #ifdef USE_MMAP
     return ret == 0 ? bytes : ret;
 #else
-    return ret == 0 ? bytes : 0;
+    return bytes;
 #endif
 
 err:
@@ -344,7 +341,7 @@ static int out_remove_audio_effect(const struct audio_stream *stream, effect_han
 static int out_get_next_write_timestamp(const struct audio_stream_out *stream,
                                         int64_t *timestamp)
 {
-    //ALOGD("%s", __func__);
+    ALOGD("%s", __func__);
     return -EINVAL;
 }
 
@@ -359,7 +356,7 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
     struct stream_out *out;
     int ret;
 
-    ALOGD("%s ->", __func__);
+    ALOGD("%s", __func__);
     out = (struct stream_out *)calloc(1, sizeof(struct stream_out));
     if (!out)
         return -ENOMEM;
@@ -394,7 +391,6 @@ static int adev_open_output_stream(struct audio_hw_device *dev,
     adev->device = -1;
 
     *stream_out = &out->stream;
-    ALOGD("%s <-", __func__);
     return 0;
 
 err_open:
@@ -408,10 +404,9 @@ static void adev_close_output_stream(struct audio_hw_device *dev,
 {
     struct stream_out *out = (struct stream_out *)stream;
 
-    ALOGD("%s ->", __func__);
+    ALOGD("%s", __func__);
     out_standby(&stream->common);
     free(stream);
-    ALOGD("%s <-", __func__);
 }
 
 static int adev_set_parameters(struct audio_hw_device *dev, const char *kvpairs)
@@ -481,10 +476,11 @@ static int start_input_stream(struct stream_in *in)
     struct audio_device *adev = in->dev;
     int i;
 
-    ALOGD("%s ->", __func__);
+    ALOGD("%s", __func__);
     if ((adev->card < 0) || (adev->device < 0))
         return -EINVAL;
 
+    ALOGD("start_input_stream()");
 #ifdef USE_MMAP
     in->pcm = pcm_open(adev->card, adev->device, PCM_IN | PCM_MMAP | PCM_NOIRQ , &pcm_config_in);
 #else
@@ -497,7 +493,6 @@ static int start_input_stream(struct stream_in *in)
         return -ENOMEM;
     }
 
-    ALOGD("%s <-", __func__);
     return 0;
 }
 
@@ -547,10 +542,11 @@ static int in_standby(struct audio_stream *stream)
 {
     struct stream_in *in = (struct stream_in *)stream;
 
-    ALOGD("%s ->", __func__);
+    ALOGD("%s", __func__);
     pthread_mutex_lock(&in->dev->lock);
     pthread_mutex_lock(&in->lock);
 
+    ALOGD("in_standby");
     if (!in->standby) {
         pcm_close(in->pcm);
         in->pcm = NULL;
@@ -559,7 +555,6 @@ static int in_standby(struct audio_stream *stream)
 
     pthread_mutex_unlock(&in->lock);
     pthread_mutex_unlock(&in->dev->lock);
-    ALOGD("%s <-", __func__);
 
     return 0;
 }
@@ -580,7 +575,7 @@ static int in_set_parameters(struct audio_stream *stream, const char *kvpairs)
     int routing = 0;
     int closing = 0;
 
-    ALOGD("%s ->", __func__);
+    ALOGD("%s", __func__);
     parms = str_parms_create_str(kvpairs);
     pthread_mutex_lock(&adev->lock);
 
@@ -611,7 +606,6 @@ static int in_set_parameters(struct audio_stream *stream, const char *kvpairs)
     ALOGD("in_set_parameters card [%d] device[%d] in_override[%d]", adev->card, adev->device, in_override);
     pthread_mutex_unlock(&adev->lock);
     str_parms_destroy(parms);
-    ALOGD("%s <-", __func__);
 
     return 0;
 }
@@ -644,7 +638,7 @@ static ssize_t in_read(struct audio_stream_in *stream, void* buffer, size_t byte
     int ret;
     struct stream_in *in = (struct stream_in *)stream;
 
-    //ALOGD("%s ->", __func__);
+    //ALOGD("%s", __func__);
     //ALOGD("in_read() USB HAL reading %d", bytes);
     pthread_mutex_lock(&in->dev->lock);
     pthread_mutex_lock(&in->lock);
@@ -659,18 +653,16 @@ static ssize_t in_read(struct audio_stream_in *stream, void* buffer, size_t byte
 #ifdef USE_MMAP
     ret = pcm_mmap_read(in->pcm, (void *)buffer, bytes);
 #else
-    ret = pcm_read(in->pcm, (void *)buffer, bytes);
+    pcm_read(in->pcm, (void *)buffer, bytes);
 #endif
 
     pthread_mutex_unlock(&in->lock);
     pthread_mutex_unlock(&in->dev->lock);
 
-    //ALOGD("%s <- %d", __func__, ret);
-
 #ifdef USE_MMAP
     return ret == 0 ? bytes : ret;
 #else
-    return ret == 0 ? bytes : 0;
+    return bytes;
 #endif
 
 err:
@@ -700,7 +692,7 @@ static int adev_open_input_stream(struct audio_hw_device *dev,
     struct stream_in *in;
     int ret;
 
-    ALOGD("%s ->", __func__);
+    ALOGD("%s", __func__);
     in = (struct stream_in *)calloc(1, sizeof(struct stream_in));
     if (!in)
         return -ENOMEM;
@@ -737,9 +729,6 @@ static int adev_open_input_stream(struct audio_hw_device *dev,
     adev->device = -1;
 
     *stream_in = &in->stream;
-    
-    ALOGD("%s <-", __func__);
-    
     return 0;
 
 err_open:
@@ -753,10 +742,9 @@ static void adev_close_input_stream(struct audio_hw_device *dev,
 {
     struct stream_in *in = (struct stream_in *)stream;
 
-    ALOGD("%s ->", __func__);
+    ALOGD("%s", __func__);
     in_standby(&stream->common);
     free(stream);
-    ALOGD("%s <-", __func__);
 }
 
 static int adev_dump(const audio_hw_device_t *device, int fd)
@@ -768,10 +756,9 @@ static int adev_dump(const audio_hw_device_t *device, int fd)
 static int adev_close(hw_device_t *device)
 {
     struct audio_device *adev = (struct audio_device *)device;
-    ALOGD("%s ->", __func__);
+    ALOGD("%s", __func__);
 
     free(device);
-    ALOGD("%s <-", __func__);
     return 0;
 }
 
@@ -781,7 +768,7 @@ static int adev_open(const hw_module_t* module, const char* name,
     struct audio_device *adev;
     int ret;
     
-    ALOGD("%s ->", __func__);
+    ALOGD("%s", __func__);
 
     if (strcmp(name, AUDIO_HARDWARE_INTERFACE) != 0)
         return -EINVAL;
@@ -811,7 +798,6 @@ static int adev_open(const hw_module_t* module, const char* name,
     adev->hw_device.dump = adev_dump;
 
     *device = &adev->hw_device.common;
-    ALOGD("%s <-", __func__);
 
     return 0;
 }
